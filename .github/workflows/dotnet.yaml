@@ -19,7 +19,7 @@ jobs:
         dotnet-version: 10.0.x
 
     - name: Restore dependencies
-      run: dotnet restore Pomolog.Api/Pomolog.Api.csproj
+      run: dotnet restore Pomolog.Api.csproj
 
     - name: Build
-      run: dotnet build Pomolog.Api/Pomolog.Api.csproj --no-restore --configuration Release
+      run: dotnet build Pomolog.Api.csproj --no-restore --configuration Release
