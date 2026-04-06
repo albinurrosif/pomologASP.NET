@@ -29,7 +29,7 @@ namespace Pomolog.Api.Data
                     Name = "Si Tester",
                     Email = "tester@pomolog.com",
                     PasswordHash = "rahasia",
-                    // Catatan Edge Case: Gunakan tanggal statis agar EF Core tidak mengira data ini berubah setiap kali kita buat migrasi baru.
+                    // Catatan Edge Case: Gunakan tanggal statis agar EF Core tidak mengira data ini berubah setiap kita buat migrasi baru.
                     CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
