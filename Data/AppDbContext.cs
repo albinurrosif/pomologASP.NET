@@ -20,6 +20,19 @@ namespace Pomolog.Api.Data
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // --- DATA SEEDING ---
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    Id = 1, // Syarat seeding: ID harus diisi secara eksplisit (manual)
+                    Name = "Si Tester",
+                    Email = "tester@pomolog.com",
+                    PasswordHash = "rahasia",
+                    // Catatan Edge Case: Gunakan tanggal statis agar EF Core tidak mengira data ini berubah setiap kita buat migrasi baru.
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
         }
     }
 }
