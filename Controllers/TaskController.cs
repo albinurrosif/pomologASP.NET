@@ -52,6 +52,9 @@ namespace Pomolog.Api.Controllers
             var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && t.UserId == currentUserId);
             if (task == null) return NotFound("Tugas tidak ditemukan.");
 
+            if (task.Status == "Done") return BadRequest("Tugas sudah selesai, tidak bisa dimulai lagi.");
+            if (task.Status == "InProgress") return BadRequest("Tugas sedang berjalan.");
+
             task.Status = "InProgress";
             task.StartedAtUtc = DateTime.UtcNow;
 
@@ -92,6 +95,9 @@ namespace Pomolog.Api.Controllers
             int currentUserId = GetUserIdFromToken();
             var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && t.UserId == currentUserId);
             if (task == null) return NotFound();
+
+            if (task.StartedAtUtc == null) return BadRequest("Tidak bisa menyelesaikan tugas yang belum dimulai.");
+            if (task.Status == "Done") return BadRequest("Tugas sudah selesai.");
 
             task.Status = "Done";
             task.FinishedAtUtc = DateTime.UtcNow;
