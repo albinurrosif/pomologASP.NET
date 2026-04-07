@@ -3,9 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Pomolog.Api.Data;
 using Pomolog.Api.Models;
 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 namespace Pomolog.Api.Controllers
 {
-    // Ini sama dengan: router.use('/api/tasks', ...) di Express
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class TasksController : ControllerBase
@@ -22,7 +25,8 @@ namespace Pomolog.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllTasks()
         {
-            var tasks = await _context.TaskItems.ToListAsync();
+            int userId = GetUserIdFromToken(); // Ambil ID User dari JWT Token  
+            var tasks = await _context.TaskItems.Where(t => t.UserId == userId).ToListAsync();
             return Ok(tasks); // Sama dengan: res.status(200).json(tasks)
         }
 
@@ -30,8 +34,8 @@ namespace Pomolog.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTask([FromBody] TaskItem newTask)
         {
-            // Untuk sementara, UserId = 1 (karena sistem Login belum dibuat)
-            newTask.UserId = 1; 
+            int userId = GetUserIdFromToken(); // Ambil ID User dari JWT Token
+            newTask.UserId = userId;
             newTask.CreatedAt = DateTime.UtcNow; // Selalu gunakan UTC!
 
             _context.TaskItems.Add(newTask);
@@ -65,7 +69,7 @@ namespace Pomolog.Api.Controllers
             // --- LOGIKA ANTI-CHEAT ---
             // Cek berapa lama waktu berlalu sejak tugas dimulai
             var elapsedTime = (DateTime.UtcNow - task.StartedAtUtc.Value).TotalSeconds;
-            
+
             // Jika waktu jeda yang dikirim Frontend lebih besar dari waktu asli yang berjalan, berarti user curang!
             if (pausedSeconds > elapsedTime)
             {
@@ -104,6 +108,13 @@ namespace Pomolog.Api.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Tugas berhasil dihapus." });
+        }
+
+        // Fungsi untuk mengambil ID User dari JWT Token yang sedang aktif
+        private int GetUserIdFromToken()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.Parse(userIdClaim ?? "0");
         }
     }
 }
