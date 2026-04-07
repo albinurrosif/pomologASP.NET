@@ -27,8 +27,9 @@ namespace Pomolog.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
             // 1. Cek apakah email sudah terdaftar
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             if (existingUser != null)
                 return BadRequest("Email sudah digunakan.");
 
@@ -53,8 +54,9 @@ namespace Pomolog.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
             // 1. Cari user berdasarkan Email
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             if (user == null)
                 return Unauthorized("Email atau password salah.");
 

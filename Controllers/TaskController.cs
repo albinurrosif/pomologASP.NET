@@ -48,7 +48,8 @@ namespace Pomolog.Api.Controllers
         [HttpPatch("{id}/start")]
         public async Task<IActionResult> StartTask(int id)
         {
-            var task = await _context.TaskItems.FindAsync(id);
+            int currentUserId = GetUserIdFromToken();
+            var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && t.UserId == currentUserId);
             if (task == null) return NotFound("Tugas tidak ditemukan.");
 
             task.Status = "InProgress";
@@ -62,7 +63,8 @@ namespace Pomolog.Api.Controllers
         [HttpPatch("{id}/pause")]
         public async Task<IActionResult> PauseTask(int id, [FromBody] int pausedSeconds)
         {
-            var task = await _context.TaskItems.FindAsync(id);
+            int currentUserId = GetUserIdFromToken();
+            var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && t.UserId == currentUserId);
             if (task == null) return NotFound();
             if (task.StartedAtUtc == null) return BadRequest("Tugas belum dimulai!");
 
@@ -87,7 +89,8 @@ namespace Pomolog.Api.Controllers
         [HttpPatch("{id}/finish")]
         public async Task<IActionResult> FinishTask(int id)
         {
-            var task = await _context.TaskItems.FindAsync(id);
+            int currentUserId = GetUserIdFromToken();
+            var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && t.UserId == currentUserId);
             if (task == null) return NotFound();
 
             task.Status = "Done";
@@ -101,7 +104,8 @@ namespace Pomolog.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTask(int id)
         {
-            var task = await _context.TaskItems.FindAsync(id);
+            int currentUserId = GetUserIdFromToken();
+            var task = await _context.TaskItems.FirstOrDefaultAsync(t => t.Id == id && t.UserId == currentUserId);
             if (task == null) return NotFound();
 
             _context.TaskItems.Remove(task);

@@ -24,7 +24,18 @@ builder.Services.AddCors(options =>
 });
 
 // --- KONFIGURASI JWT AUTHENTICATION ---
-var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+var jwtSecret = jwtSection["Secret"];
+var jwtIssuer = jwtSection["Issuer"];
+var jwtAudience = jwtSection["Audience"];
+
+if (string.IsNullOrWhiteSpace(jwtSecret) ||
+    string.IsNullOrWhiteSpace(jwtIssuer) ||
+    string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException(
+        "JwtSettings:Secret, JwtSettings:Issuer, and JwtSettings:Audience must be configured.");
+}
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -34,8 +45,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true, // Cek apakah token sudah expired
             ValidateIssuerSigningKey = true, // Cek tanda tangan token
-            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!))
         };
     });
