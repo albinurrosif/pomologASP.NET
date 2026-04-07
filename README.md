@@ -56,15 +56,13 @@ Buat file appsettings.Development.json di dalam folder Pomolog.Api dan tambahkan
 
     dotnet run --project Pomolog.Api/Pomolog.Api.csproj
 
-```bash
-    dotnet run --project Pomolog.Api/Pomolog.Api.csproj
-```
-
 **5. Buka Dokumentasi API**
 Akses API Contract dan _testing tool_ (Scalar) di browser:
+
 ```bash
 http://localhost:5067/scalar/v1
 ```
+
 _(Catatan: Port dapat berbeda, sesuaikan dengan output terminal Anda)._
 
 ---
