@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pomolog.Api.Data;
@@ -11,9 +12,11 @@ using Pomolog.Api.Data;
 namespace Pomolog.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260409114325_AddJunctionTableArchitecture")]
+    partial class AddJunctionTableArchitecture
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,8 +43,6 @@ namespace Pomolog.Api.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("PomodoroSessions");
                 });
@@ -143,15 +144,6 @@ namespace Pomolog.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Pomolog.Api.Models.PomodoroSession", b =>
-                {
-                    b.HasOne("Pomolog.Api.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Pomolog.Api.Models.SessionTaskRecord", b =>
                 {
                     b.HasOne("Pomolog.Api.Models.PomodoroSession", "Session")
@@ -163,7 +155,7 @@ namespace Pomolog.Api.Migrations
                     b.HasOne("Pomolog.Api.Models.TaskItem", "Task")
                         .WithMany("SessionRecords")
                         .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Session");

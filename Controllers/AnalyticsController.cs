@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Pomolog.Api.Data;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
 namespace Pomolog.Api.Controllers
@@ -18,39 +18,43 @@ namespace Pomolog.Api.Controllers
             _context = context;
         }
 
-        private int GetUserIdFromToken()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return int.Parse(userIdClaim ?? "0");
-        }
-
+        // GET: /api/analytics/summary
         [HttpGet("summary")]
         public async Task<IActionResult> GetSummary()
         {
             int userId = GetUserIdFromToken();
 
-            // 1. Ambil HANYA tugas yang sudah "Done" dan punya waktu mulai/selesai
-            var doneTasks = await _context.TaskItems
-                .Where(t => t.UserId == userId && t.Status == "Done" && t.StartedAtUtc != null && t.FinishedAtUtc != null)
-                .ToListAsync();
+            // 1. Menghitung total tugas yang sudah "Done"
+            var totalTasksCompleted = await _context.TaskItems
+                .Where(t => t.UserId == userId && t.Status == "Done")
+                .CountAsync();
 
-            // 2. Hitung total tugas
-            int totalTasksCompleted = doneTasks.Count;
+            // 2. Menghitung berapa kali sesi Pomodoro sukses diselesaikan
+            var totalSessionsCompleted = await _context.PomodoroSessions
+                .Where(s => s.UserId == userId)
+                .CountAsync();
 
-            // 3. Hitung total detik fokus sesungguhnya
-            // Rumus: (Waktu Selesai - Waktu Mulai) - Waktu Jeda
-            double totalFocusSeconds = doneTasks.Sum(t =>
-                (t.FinishedAtUtc!.Value - t.StartedAtUtc!.Value).TotalSeconds - t.TotalPausedSeconds);
-
-            // 4. Konversi ke menit agar lebih mudah dibaca Frontend
-            double totalFocusMinutes = Math.Round(totalFocusSeconds / 60, 2);
+            // 3. Menghitung total waktu fokus (jumlah durasi dari semua sesi)
+            var totalFocusMinutes = await _context.PomodoroSessions
+                .Where(s => s.UserId == userId)
+                .SumAsync(s => s.DurationMinutes);
 
             return Ok(new
             {
                 TotalTasksCompleted = totalTasksCompleted,
-                TotalFocusSeconds = totalFocusSeconds,
-                TotalFocusMinutes = totalFocusMinutes
+                TotalSessionsCompleted = totalSessionsCompleted,
+                TotalFocusTimeMinutes = totalFocusMinutes
             });
+        }
+
+        private int GetUserIdFromToken()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                throw new UnauthorizedAccessException("Invalid or missing user identifier in token.");
+            }
+            return userId;
         }
     }
 }
