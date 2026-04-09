@@ -9,16 +9,32 @@ namespace Pomolog.Api.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<TaskItem> TaskItems { get; set; }
+        public DbSet<PomodoroSession> PomodoroSessions { get; set; }
+        public DbSet<SessionTaskRecord> SessionTaskRecords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure relationships and constraints if needed
+            // Relasi dari TaskItem ke User
             modelBuilder.Entity<TaskItem>()
                 .HasOne<User>()
                 .WithMany()
                 .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relasi dari SessionTaskRecord ke Session
+            modelBuilder.Entity<SessionTaskRecord>()
+                .HasOne(str => str.Session)
+                .WithMany(s => s.TaskRecords)
+                .HasForeignKey(str => str.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relasi dari SessionTaskRecord ke Task
+            modelBuilder.Entity<SessionTaskRecord>()
+                .HasOne(str => str.Task)
+                .WithMany(t => t.SessionRecords)
+                .HasForeignKey(str => str.TaskId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // --- DATA SEEDING ---
