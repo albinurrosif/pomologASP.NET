@@ -24,18 +24,25 @@ namespace Pomolog.Api.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Relasi dari SessionTaskRecord ke Session
+            modelBuilder.Entity<PomodoroSession>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relasi Junction Table ke Session
             modelBuilder.Entity<SessionTaskRecord>()
                 .HasOne(str => str.Session)
                 .WithMany(s => s.TaskRecords)
                 .HasForeignKey(str => str.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Relasi dari SessionTaskRecord ke Task
+            // Relasi Junction Table ke Task
             modelBuilder.Entity<SessionTaskRecord>()
                 .HasOne(str => str.Task)
                 .WithMany(t => t.SessionRecords)
                 .HasForeignKey(str => str.TaskId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             // --- DATA SEEDING ---
             modelBuilder.Entity<User>().HasData(

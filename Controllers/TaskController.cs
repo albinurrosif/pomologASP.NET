@@ -4,6 +4,7 @@ using Pomolog.Api.Data;
 using Pomolog.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Pomolog.Api.DTOs;
 
 namespace Pomolog.Api.Controllers
 {
@@ -30,12 +31,16 @@ namespace Pomolog.Api.Controllers
 
         // 2. POST: Buat tugas baru
         [HttpPost]
-        public async Task<IActionResult> CreateTask([FromBody] TaskItem newTask)
+        public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto dto) // Gunakan DTO
         {
-            newTask.UserId = GetUserIdFromToken();
-            newTask.CreatedAt = DateTime.UtcNow;
-            newTask.Status = "Todo";
-            //newTask.TotalMinutesSpent = 0; // Set awal 0 menit
+            var newTask = new TaskItem
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                UserId = GetUserIdFromToken(),
+                CreatedAt = DateTime.UtcNow,
+                Status = "Todo"
+            };
 
             _context.TaskItems.Add(newTask);
             await _context.SaveChangesAsync();

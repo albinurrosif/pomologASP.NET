@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Pomolog.Api.Data;
 using Pomolog.Api.Models;
-using Pomolog.Api.DTOs; // Import DTO kita
+using Pomolog.Api.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
@@ -24,35 +25,54 @@ namespace Pomolog.Api.Controllers
         {
             int userId = GetUserIdFromToken();
 
-            // 1. Simpan Sesi Induk dulu
-            var newSession = new PomodoroSession
+            // VALIDASI KEAMANAN (IDOR Check)
+            var requestTaskIds = dto.Tasks.Select(t => t.TaskId).ToList();
+            var validTaskIds = await _context.TaskItems
+                .Where(t => t.UserId == userId && requestTaskIds.Contains(t.Id))
+                .Select(t => t.Id)
+                .ToListAsync();
+
+            var invalidTaskIds = requestTaskIds.Except(validTaskIds).ToList();
+            if (invalidTaskIds.Any())
             {
-                UserId = userId,
-                DurationMinutes = dto.DurationMinutes,
-                CompletedAtUtc = DateTime.UtcNow
-            };
-
-            _context.PomodoroSessions.Add(newSession);
-
-            // Simpan ke DB agar newSession.Id otomatis di-generate oleh PostgreSQL
-            await _context.SaveChangesAsync();
-
-            // 2. Loop tugas-tugasnya dan simpan ke Junction Table
-            foreach (var task in dto.Tasks)
-            {
-                var record = new SessionTaskRecord
-                {
-                    SessionId = newSession.Id, // Ambil ID yang baru tercipta
-                    TaskId = task.TaskId,
-                    MinutesSpent = task.MinutesSpent
-                };
-                _context.SessionTaskRecords.Add(record);
+                return BadRequest(new { message = "Unauthorized or Invalid Task IDs", invalidTaskIds });
             }
 
-            // Simpan semua relasinya ke DB
-            await _context.SaveChangesAsync();
+            // DATABASE TRANSACTION (Mencegah data setengah jadi)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var newSession = new PomodoroSession
+                {
+                    UserId = userId,
+                    DurationMinutes = dto.DurationMinutes,
+                    CompletedAtUtc = DateTime.UtcNow
+                };
 
-            return Ok(new { message = "Sesi Pomodoro berhasil dicatat!", sessionId = newSession.Id });
+                _context.PomodoroSessions.Add(newSession);
+                await _context.SaveChangesAsync(); // Mendapatkan ID Sesi baru
+
+                foreach (var task in dto.Tasks)
+                {
+                    var record = new SessionTaskRecord
+                    {
+                        SessionId = newSession.Id,
+                        TaskId = task.TaskId,
+                        MinutesSpent = task.MinutesSpent
+                    };
+                    _context.SessionTaskRecords.Add(record);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync(); // Konfirmasi semua berhasil!
+
+                return Ok(new { message = "Sesi Pomodoro berhasil dicatat!", sessionId = newSession.Id });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(); // Batalkan semua jika ada error
+                return StatusCode(500, new { message = "Terjadi kesalahan internal server.", details = ex.Message });
+            }
         }
 
         private int GetUserIdFromToken()
