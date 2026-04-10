@@ -15,7 +15,7 @@ Pomolog adalah aplikasi _time-tracking_ berbasis teknik Pomodoro yang dirancang 
 
 1. **Authentication & Security:** Register, Login, dan pengamanan _endpoint_ menggunakan otorisasi JWT Berbasis Kepemilikan (_Ownership Authorization_).
 2. **Task Management:** CRUD (Create, Read, Update, Delete) untuk daftar tugas.
-3. **Pomodoro Timer Logic:** Logika _Anti-Cheat_ yang memastikan waktu jeda (_pause_) tidak memanipulasi durasi fokus asli.
+3. **Strict Pomodoro Architecture:** Memisahkan entitas Tugas dan Sesi Waktu menggunakan Junction Table untuk pelacakan analitik yang akurat dan fleksibel.
 4. **Analytics:** Perhitungan _real-time_ untuk total tugas selesai dan akumulasi waktu fokus pengguna.
 
 ## 📋 Prasyarat (Prerequisites)
