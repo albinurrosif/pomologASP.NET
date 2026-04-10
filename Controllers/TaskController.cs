@@ -29,6 +29,29 @@ namespace Pomolog.Api.Controllers
             return Ok(tasks);
         }
 
+        // 1.5 GET: Ambil tugas beserta TOTAL WAKTU yang dihabiskan
+        [HttpGet("with-time-spent")]
+        public async Task<IActionResult> GetTasksWithTimeSpent()
+        {
+            int userId = GetUserIdFromToken();
+
+            var tasksWithTime = await _context.TaskItems
+                .Where(t => t.UserId == userId)
+                .Select(t => new
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    Description = t.Description,
+                    Status = t.Status,
+                    CreatedAt = t.CreatedAt,
+                    // Menjumlahkan menit dari junction table
+                    TotalMinutesSpent = t.SessionRecords.Sum(r => r.MinutesSpent)
+                })
+                .ToListAsync();
+
+            return Ok(tasksWithTime);
+        }
+
         // 2. POST: Buat tugas baru
         [HttpPost]
         public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto dto) // Gunakan DTO
