@@ -52,100 +52,97 @@ namespace Pomolog.Api.Controllers
         public async Task<IActionResult> GetWeeklyAnalytics()
         {
             int userId = GetUserIdFromToken();
-
-            // Tentukan batas waktu 7 hari ke belakang dari hari ini
             var today = DateTime.UtcNow.Date;
-            var sevenDaysAgo = today.AddDays(-6); // 6 hari lalu + hari ini = 7 hari
+            var sevenDaysAgo = today.AddDays(-6);
 
-            // Ambil semua sesi dalam 7 hari terakhir
+            // Ambil sesi Pomodoro yang selesai dalam 7 hari terakhir
             var sessions = await _context.PomodoroSessions
                 .Where(s => s.UserId == userId && s.CompletedAtUtc >= sevenDaysAgo)
                 .ToListAsync();
 
-            // Kelompokkan data yang didapat berdasarkan Tanggal
-            var groupedData = sessions
+            // Kelompokkan sesi berdasarkan tanggal dan hitung total menit serta jumlah sesi per hari
+            var groupedSessions = sessions
                 .GroupBy(s => s.CompletedAtUtc.Date)
-                .ToDictionary(
-                    g => g.Key,
-                    g => new
-                    {
-                        TotalMinutes = g.Sum(s => s.DurationMinutes),
-                        SessionCount = g.Count()
-                    }
-                );
+                .ToDictionary(g => g.Key, g => new { TotalMinutes = g.Sum(s => s.DurationMinutes), SessionCount = g.Count() });
 
-            // Siapkan array kosong untuk 7 hari (agar hari yang kosong tetap tampil di grafik)
+            // Ambil tugas yang selesai dalam 7 hari terakhir
+            var completedTasks = await _context.TaskItems
+                .Where(t => t.UserId == userId && t.Status == "Done" && t.CompletedAt >= sevenDaysAgo)
+                .ToListAsync();
+
+            // Kelompokkan tugas berdasarkan tanggal penyelesaian dan hitung jumlah tugas per hari
+            var groupedTasks = completedTasks
+                .Where(t => t.CompletedAt.HasValue)
+                .GroupBy(t => t.CompletedAt.Value.Date)
+                .ToDictionary(g => g.Key, g => g.Count());
+
             var result = new List<object>();
 
+            // Loop untuk 7 hari terakhir (termasuk hari ini)
             for (int i = 6; i >= 0; i--)
             {
                 var currentDate = today.AddDays(-i);
-
-                // Cek apakah di hari tersebut ada data, jika tidak, beri nilai 0
-                var dayData = groupedData.ContainsKey(currentDate) ? groupedData[currentDate] : new { TotalMinutes = 0, SessionCount = 0 };
+                var sessionData = groupedSessions.ContainsKey(currentDate) ? groupedSessions[currentDate] : new { TotalMinutes = 0, SessionCount = 0 };
+                var taskCount = groupedTasks.ContainsKey(currentDate) ? groupedTasks[currentDate] : 0;
 
                 result.Add(new
                 {
-                    Date = currentDate.ToString("yyyy-MM-dd"), // Format ISO agar mudah dibaca JS
-                    DayName = currentDate.ToString("ddd", new System.Globalization.CultureInfo("id-ID")), // Output: Sen, Sel, Rab
-                    TotalMinutes = dayData.TotalMinutes,
-                    SessionCount = dayData.SessionCount
+                    Date = currentDate.ToString("yyyy-MM-dd"),
+                    DayName = currentDate.ToString("ddd", new System.Globalization.CultureInfo("id-ID")),
+                    TotalMinutes = sessionData.TotalMinutes,
+                    SessionCount = sessionData.SessionCount,
+                    TasksCompleted = taskCount
                 });
             }
 
             return Ok(result);
         }
 
-        // GET: /api/analytics/weekly
+        // GET: /api/analytics/monthly
         [HttpGet("monthly")]
         public async Task<IActionResult> GetmonthlyAnalytics()
         {
             int userId = GetUserIdFromToken();
-
-            // Tentukan batas waktu 30 hari ke belakang dari hari ini
             var today = DateTime.UtcNow.Date;
-            var sevenDaysAgo = today.AddDays(-29); // 29 hari lalu + hari ini = 30 hari
+            var thirtyDaysAgo = today.AddDays(-29); // 29 hari lalu + hari ini = 30 hari
 
-            // Ambil semua sesi dalam 30 hari terakhir
             var sessions = await _context.PomodoroSessions
-                .Where(s => s.UserId == userId && s.CompletedAtUtc >= sevenDaysAgo)
+                .Where(s => s.UserId == userId && s.CompletedAtUtc >= thirtyDaysAgo)
                 .ToListAsync();
 
-            // Kelompokkan data yang didapat berdasarkan Tanggal
-            var groupedData = sessions
+            var groupedSessions = sessions
                 .GroupBy(s => s.CompletedAtUtc.Date)
-                .ToDictionary(
-                    g => g.Key,
-                    g => new
-                    {
-                        TotalMinutes = g.Sum(s => s.DurationMinutes),
-                        SessionCount = g.Count()
-                    }
-                );
+                .ToDictionary(g => g.Key, g => new { TotalMinutes = g.Sum(s => s.DurationMinutes), SessionCount = g.Count() });
 
-            // Siapkan array kosong untuk 30 hari (agar hari yang kosong tetap tampil di grafik)
+            var completedTasks = await _context.TaskItems
+                .Where(t => t.UserId == userId && t.Status == "Done" && t.CompletedAt >= thirtyDaysAgo)
+                .ToListAsync();
+
+            var groupedTasks = completedTasks
+                .Where(t => t.CompletedAt.HasValue)
+                .GroupBy(t => t.CompletedAt.Value.Date)
+                .ToDictionary(g => g.Key, g => g.Count());
+
             var result = new List<object>();
 
             for (int i = 29; i >= 0; i--)
             {
                 var currentDate = today.AddDays(-i);
-
-                // Cek apakah di hari tersebut ada data, jika tidak, beri nilai 0
-                var dayData = groupedData.ContainsKey(currentDate) ? groupedData[currentDate] : new { TotalMinutes = 0, SessionCount = 0 };
+                var sessionData = groupedSessions.ContainsKey(currentDate) ? groupedSessions[currentDate] : new { TotalMinutes = 0, SessionCount = 0 };
+                var taskCount = groupedTasks.ContainsKey(currentDate) ? groupedTasks[currentDate] : 0;
 
                 result.Add(new
                 {
-                    Date = currentDate.ToString("yyyy-MM-dd"), // Format ISO agar mudah dibaca JS
-                    DayName = currentDate.ToString("ddd", new System.Globalization.CultureInfo("id-ID")), // Output: Sen, Sel, Rab
-                    TotalMinutes = dayData.TotalMinutes,
-                    SessionCount = dayData.SessionCount
+                    Date = currentDate.ToString("yyyy-MM-dd"),
+                    DayName = currentDate.ToString("ddd", new System.Globalization.CultureInfo("id-ID")),
+                    TotalMinutes = sessionData.TotalMinutes,
+                    SessionCount = sessionData.SessionCount,
+                    TasksCompleted = taskCount
                 });
             }
 
             return Ok(result);
         }
-
-
         private int GetUserIdFromToken()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
