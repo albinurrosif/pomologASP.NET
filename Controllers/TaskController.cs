@@ -83,6 +83,8 @@ namespace Pomolog.Api.Controllers
 
             task.Status = "Done";
 
+            task.CompletedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             return Ok(new { message = "Tugas selesai!", task });
         }

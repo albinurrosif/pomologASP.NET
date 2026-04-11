@@ -11,6 +11,7 @@ namespace Pomolog.Api.Models
         public string? Description { get; set; } = string.Empty;
         public string Status { get; set; } = "Todo";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
 
         // Relasi ke tabel persimpangan (Satu task bisa ada di banyak sesi)
         [JsonIgnore] // Agar tidak error loop saat di-return sebagai JSON
