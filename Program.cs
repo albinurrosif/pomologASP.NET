@@ -2,23 +2,22 @@ using Pomolog.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Microsoft.OpenApi;
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- KONFIGURASI DATABASE (PostgreSQL dengan Entity Framework Core) ---
+// --- KONFIGURASI DATABASE ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- KONFIGURASI CORS (Agar Frontend bisa akses API) ---
+// --- KONFIGURASI CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Port standar React/Vue/Vite
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -34,9 +33,9 @@ if (string.IsNullOrWhiteSpace(jwtSecret) ||
     string.IsNullOrWhiteSpace(jwtIssuer) ||
     string.IsNullOrWhiteSpace(jwtAudience))
 {
-    throw new InvalidOperationException(
-        "JwtSettings:Secret, JwtSettings:Issuer, and JwtSettings:Audience must be configured.");
+    throw new InvalidOperationException("JwtSettings must be configured.");
 }
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -44,15 +43,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidateLifetime = true, // Cek apakah token sudah expired
-            ValidateIssuerSigningKey = true, // Cek tanda tangan token
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret!))
         };
     });
 
-// --- KONFIGURASI OPENAPI (Swagger) ---
+// --- KONFIGURASI OPENAPI ---
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -71,26 +70,19 @@ builder.Services.AddOpenApi(options =>
         {
             [new OpenApiSecuritySchemeReference("Bearer", document)] = []
         });
-
         return Task.CompletedTask;
     });
 });
 
 builder.Services.AddAuthorization();
-// Add services to the container.
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-
-    app.MapScalarApiReference();
-}
+// --- MIDDLEWARE ---
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 app.UseCors("AllowFrontend");
 
@@ -100,5 +92,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// --- MIGRASI DATABASE OTOMATIS SAAT APLIKASI JALAN ---
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.Run();
